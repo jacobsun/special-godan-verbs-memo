@@ -4,7 +4,7 @@ const { CleanWebpackPlugin } = require('clean-webpack-plugin')
 const MiniCssExtractPlugin = require('mini-css-extract-plugin')
 const CssMinimizerPlugin = require('css-minimizer-webpack-plugin')
 
-const PRODUCTION_ASSETS_URL = '/'
+const PRODUCTION_ASSETS_URL = 'https://ziox.xyz/special-godan-verbs-memo/'
 
 const publicPath = () => process.env.mode === 'production' ? PRODUCTION_ASSETS_URL : '/'
 
