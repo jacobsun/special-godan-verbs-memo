@@ -4,9 +4,37 @@ import 'tippy.js/dist/tippy.css'
 import dict from './dict.js'
 import Swal from 'sweetalert2'
 
-const DIVS_PER_LINE = 5
+const DIVS_PER_LINE = 9
 const LEADING_BLANK_LINE = 1
 const TRAILING_BLANK_LINE = 7
+const NOT_JLPT = ['阿る',
+  '過る',
+  '競る',
+  '繁る',
+  '陰る',
+  '猛る',
+  '滾る',
+  '伏せる',
+  '陥る',
+  '覆る',
+  '攀じる',
+  '迸る',
+  '甦る',
+  '穿る',
+  '抉る',
+  '漲る',
+  '嘲る',
+  '誹る',
+  '謗る',
+  '譏る',
+  '熬る',
+  '舐める',
+  '脂ぎる',
+  '火照る',
+  '滅入る',
+  '野次る',
+  '愚痴る',
+  '魂消る']
 window.addEventListener('DOMContentLoaded', e => {
   function handleDragStart (e) {
     this.style.opacity = '0.4'
@@ -88,34 +116,50 @@ window.addEventListener('DOMContentLoaded', e => {
     for (let n = TRAILING_BLANK_LINE * DIVS_PER_LINE; n > 0; n--) {
       arr.push(blankEle)
     }
+
     return arr
   }
 
-  let words = (tryLocalData() || dict).map((wordObj, idx) => {
-    const { id, hanzi, word, pronunciation, translation } = wordObj
-    return `<div class="block" draggable="true">
-      <div class="word-block" data-id="${id}" data-hanzi="${hanzi}" data-word="${word}" data-pronunciation="${pronunciation}" data-translation="${translation}">
-      <span>${hanzi}</span>
-      <span class="hint" data-tippy-content="${word} (${pronunciation}) - ${translation}">❔</span>
-      </div>
-    </div>`
-  })
+  function generateEl (dict) {
+    const words = dict.map((wordObj, idx) => {
+      const { id, hanzi, word, pronunciation, translation } = wordObj
+      return `<div class="block" draggable="true">
+        <div class="word-block" data-id="${id}" data-hanzi="${hanzi}" data-word="${word}" data-pronunciation="${pronunciation}" data-translation="${translation}">
+        <span>${hanzi}</span>
+        <span class="hint" data-tippy-content="${word} (${pronunciation}) - ${translation}">❔</span>
+        </div>
+      </div>`
+    })
 
-  words = padBlankBlock(words)
+    return padBlankBlock(words)
+  }
 
   const container = document.querySelector('#container')
-  container.innerHTML = words.join('')
-  tippy('[data-tippy-content]')
+  function boot (data = null) {
+    if (data) {
+      container.innerHTML = generateEl(data).join('')
+    } else {
+      const localData = tryLocalData()
+      if (localData) {
+        container.innerHTML = localData
+      } else {
+        container.innerHTML = generateEl(dict).join('')
+      }
+    }
 
-  const blocks = document.querySelectorAll('.block')
-  blocks.forEach(block => {
-    block.addEventListener('drop', handleDrop, false)
-    block.addEventListener('dragstart', handleDragStart, false)
-    block.addEventListener('dragenter', handleDragEnter, false)
-    block.addEventListener('dragover', handleDragOver, false)
-    block.addEventListener('dragleave', handleDragLeave, false)
-    block.addEventListener('dragend', handleDragEnd, false)
-  })
+    tippy('[data-tippy-content]')
+
+    const blocks = document.querySelectorAll('.block')
+    blocks.forEach(block => {
+      block.addEventListener('drop', handleDrop, false)
+      block.addEventListener('dragstart', handleDragStart, false)
+      block.addEventListener('dragenter', handleDragEnter, false)
+      block.addEventListener('dragover', handleDragOver, false)
+      block.addEventListener('dragleave', handleDragLeave, false)
+      block.addEventListener('dragend', handleDragEnd, false)
+    })
+  }
+  boot()
 
   // const foldable = document.querySelector('.foldable')
   document.querySelector('.toggle-help').addEventListener('click', async e => {
@@ -170,12 +214,9 @@ window.addEventListener('DOMContentLoaded', e => {
   }, false)
 
   document.querySelector('.save-result').addEventListener('click', e => {
-    let words = Array.from(document.querySelectorAll('.word-block'))
-    words = words
-      .filter(el => !el.classList.contains('blank'))
-      .map(el => el.dataset.id)
+    const status = document.querySelector('#container').innerHTML
 
-    window.localStorage.setItem('poem', JSON.stringify(words))
+    window.localStorage.setItem('poem', JSON.stringify(status))
     Swal.fire({
       icon: 'success',
       text: '已保存在本地, 下次访问自动载入',
@@ -183,6 +224,36 @@ window.addEventListener('DOMContentLoaded', e => {
       timer: 3000,
       position: 'top'
     })
+  })
+
+  document.querySelector('.filter').addEventListener('click', async e => {
+    const commonDict = dict.filter(item => !NOT_JLPT.includes(item.word))
+    const result = await Swal.fire({
+      title: '确定?',
+      text: '当前作品会丢失',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: '确定',
+      cancelButtonText: '取消'
+
+    })
+    if (result.isConfirmed) {
+      boot(commonDict)
+    }
+  })
+
+  document.querySelector('.all').addEventListener('click', async e => {
+    const result = await Swal.fire({
+      title: '确定?',
+      text: '当前作品会丢失',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: '确定',
+      cancelButtonText: '取消'
+    })
+    if (result.isConfirmed) {
+      boot(dict)
+    }
   })
 }, false)
 
@@ -194,13 +265,5 @@ function tryLocalData () {
     return null
   }
 
-  if (localData && localData.length === dict.length) {
-    const localPoem = []
-    localData.forEach(idx => {
-      localPoem.push(dict.find(word => {
-        return word.id === parseInt(idx)
-      }))
-    })
-    return localPoem
-  }
+  return localData
 }
