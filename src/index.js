@@ -255,6 +255,8 @@ window.addEventListener('DOMContentLoaded', e => {
       boot(dict)
     }
   })
+
+  document.querySelector('#cloak').style.display = 'none'
 }, false)
 
 function tryLocalData () {
